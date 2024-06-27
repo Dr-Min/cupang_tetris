@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테트리스 게임</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+        }
+        .ad-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ad-container">
+            <script src="https://ads-partners.coupang.com/g.js"></script>
+            <script>
+                new PartnersCoupang.G({"id":787392,"template":"banner","trackingCode":"AF5361443","width":"120","height":"240"});
+            </script>
+        </div>
+        <div class="game-container">
+            <canvas id="gameCanvas" width="300" height="600"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        // 테트리스 게임 로직
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scale = 30;
+        const rows = 20;
+        const cols = 10;
+
+        // 테트로미노 모양 정의
+        const shapes = [
+            [[1,1,1,1]],
+            [[1,1],[1,1]],
+            [[1,1,1],[0,1,0]],
+            [[1,1,1],[1,0,0]],
+            [[1,1,1],[0,0,1]],
+            [[1,1,0],[0,1,1]],
+            [[0,1,1],[1,1,0]]
+        ];
+
+        let board = Array(rows).fill().map(() => Array(cols).fill(0));
+        let currentPiece = null;
+
+        function createPiece() {
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            return {
+                shape,
+                x: Math.floor(cols / 2) - Math.floor(shape[0].length / 2),
+                y: 0
+            };
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillStyle = 'rgb(0, 255, 0)';
+                        ctx.fillRect(x * scale, y * scale, scale, scale);
+                    }
+                });
+            });
+
+            if (currentPiece) {
+                ctx.fillStyle = 'rgb(255, 0, 0)';
+                currentPiece.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            ctx.fillRect((currentPiece.x + x) * scale, (currentPiece.y + y) * scale, scale, scale);
+                        }
+                    });
+                });
+            }
+        }
+
+        function moveDown() {
+            if (!currentPiece) {
+                currentPiece = createPiece();
+                return;
+            }
+            
+            currentPiece.y++;
+            if (collision()) {
+                currentPiece.y--;
+                merge();
+                currentPiece = createPiece();
+                if (collision()) {
+                    // 게임 오버 로직
+                    board = Array(rows).fill().map(() => Array(cols).fill(0));
+                }
+            }
+        }
+
+        function collision() {
+            return currentPiece.shape.some((row, y) => 
+                row.some((value, x) => 
+                    value && (
+                        board[y + currentPiece.y] &&
+                        board[y + currentPiece.y][x + currentPiece.x]
+                    )
+                )
+            );
+        }
+
+        function merge() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        board[y + currentPiece.y][x + currentPiece.x] = value;
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') currentPiece.x--;
+            if (e.key === 'ArrowRight') currentPiece.x++;
+            if (e.key === 'ArrowDown') moveDown();
+            if (e.key === 'ArrowUp') {
+                const rotated = currentPiece.shape[0].map((_, i) => 
+                    currentPiece.shape.map(row => row[i]).reverse()
+                );
+                const previousShape = currentPiece.shape;
+                currentPiece.shape = rotated;
+                if (collision()) {
+                    currentPiece.shape = previousShape;
+                }
+            }
+            if (collision()) {
+                if (e.key === 'ArrowLeft') currentPiece.x++;
+                if (e.key === 'ArrowRight') currentPiece.x--;
+                if (e.key === 'ArrowDown') currentPiece.y--;
+            }
+        });
+
+        setInterval(() => {
+            moveDown();
+            draw();
+        }, 500);
+
+        currentPiece = createPiece();
+        draw();
+    </script>
+</body>
+</html>
